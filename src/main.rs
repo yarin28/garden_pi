@@ -5,17 +5,25 @@ use log4rs::append::rolling_file::policy::compound::CompoundPolicy;
 use log4rs::append::rolling_file::RollingFileAppender;
 use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
-mod worker;
+use worker::WorkerError;
 use std::error::Error;
-
+use rppal::gpio::Gpio;
+use rppal::system::DeviceInfo;
 use crate::worker::Worker;
+mod worker;
 
 #[tokio::main]
 
 
 
+
 async fn main() -> Result<(), Box<dyn Error>> {
-    log::info!("the application starterd");
+// #[cfg(feature = "raspberry_pi")]    
+// {
+//     println!("print only for raspberry pi")
+// }
+  println!("Blinking an LED on a {}.", DeviceInfo::new()?.model());
+    let mut pin = Gpio::new()?.get(10)?.into_output();
     match configure_logger() {
         Err(e) => return Err(e),
         _ => {
@@ -65,3 +73,5 @@ fn configure_logger() -> Result<(), Box<dyn Error>> {
     log4rs::init_config(config)?;
     Ok(())
 }
+
+fn initializeWorker()->Result<Worker,WorkerError>
