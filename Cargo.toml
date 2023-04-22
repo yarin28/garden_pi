@@ -13,4 +13,5 @@ error-chain = "0.12.4"
 byte-unit = "4.0.19"
 futures = "0.3.28"
 reqwest = "0.11.16"
+openssl = { version = "0.10", features = ["vendored"] }
 

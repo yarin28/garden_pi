@@ -74,4 +74,8 @@ fn configure_logger() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn initializeWorker()->Result<Worker,WorkerError>
+fn initializeWorker()->Result<Worker,WorkerError>{
+            log::info!("the worker is initialized");
+            Ok(Worker::new())
+}
+
