@@ -13,4 +13,10 @@ error-chain = "0.12.4"
 byte-unit = "4.0.19"
 futures = "0.3.28"
 reqwest = "0.11.16"
+rppal = { version = "0.14.1", features = ["hal"] }
+
+
+[features]
+#raspberry_pi = ["dep:gpio"]
+raspberry_pi = []
 
