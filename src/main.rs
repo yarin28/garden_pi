@@ -13,10 +13,6 @@ use crate::worker::Worker;
 mod worker;
 
 #[tokio::main]
-
-
-
-
 async fn main() -> Result<(), Box<dyn Error>> {
 // #[cfg(feature = "raspberry_pi")]    
 // {
@@ -32,7 +28,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let worker = Worker::new();
-    match worker.pump_water(100).await {
+    match worker?.pump_water(100).await {
         Err(e) => log::error!(target:"roling","{}",format!("the punp return this error - {}",e)
         ),
         Ok(i) => println!("{}", i),
@@ -76,6 +72,5 @@ fn configure_logger() -> Result<(), Box<dyn Error>> {
 
 fn initializeWorker()->Result<Worker,WorkerError>{
             log::info!("the worker is initialized");
-            Ok(Worker::new())
-}
+            Ok(Worker::new().unwrap()) }
 

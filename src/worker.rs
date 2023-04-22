@@ -6,7 +6,7 @@ const BIGGEST_POSSIBLE_DURATION: u64 = 150000;
 const WATER_GPIO_OUTPUT_NUM:u16=10;
 pub struct Worker {
     pump_lock: Mutex<bool>,
-    water_pump_gpio:dyn GpioIn,
+    water_pump_gpio:u8,
 
 }
 
@@ -15,9 +15,10 @@ pub enum PumpError {
     AlreadyOn,
     ImpossibleDuration,
 }
+#[derive(Debug)]
 pub enum WorkerError{
     NotRunningOnRaspberryPi,
-    CantOpenOpenPumpGpioPin(Box<dyn Error>)
+    CantOpenPumpGpioPin(Box<dyn Error>)
 }
 impl fmt::Display for PumpError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -27,18 +28,38 @@ impl fmt::Display for PumpError {
         }
     }
 }
+impl Error for WorkerError {
+    fn source('static &self) -> Option<&(dyn Error + 'static)> {
+        Some(&self)
+    }
+}
+impl fmt::Display for WorkerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self{
+    WorkerError::NotRunningOnRaspberryPi =>  write!(f,"not running on a raspberry pi at the moment"),
+    WorkerError::CantOpenPumpGpioPin(e) => write!(f,"cant open punp gpio pin num {}",e),
+    }
+  }
+}
+
+//impl From<io::Error> for WorkerError {
+//    fn from(err: std::error::error) -> WorkerError {
+//        CantOpenPumpGpioPin(err)
+//    }
+//}
 impl Worker {
     pub fn new() -> Result<Worker, WorkerError> {
         // if !cfg!(feature = "raspberry_pi") {
         //     return Err(WorkerError::NotRunningOnRaspberryPi);
         // };
-        let mut water_pump_gpio = match gpio::sysfs::SysFsGpioOutput::open(WATER_GPIO_OUTPUT_NUM){
-            Ok(gpio) =>{gpio},
-            Err(e)=>{return Err( WorkerError::CantOpenOpenPumpGpioPin(e) )}
-        };
+        // todo! change this to work with the new libery
+       // let mut water_pump_gpio = match gpio::sysfs::SysFsGpioOutput::open(WATER_GPIO_OUTPUT_NUM){
+         //   Ok(gpio) =>{gpio},
+        //Err(e)=>{return Err( WorkerError::CantOpenOpenPumpGpioPin(e) )}
+        //};
         Ok(Worker {
             pump_lock: Mutex::new(false),
-            water_pump_gpio,
+            water_pump_gpio: 15,// todo!! this must be a variable!!!!!!!!!!!
         })
     }
 
