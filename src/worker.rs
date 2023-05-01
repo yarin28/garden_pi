@@ -1,37 +1,33 @@
 use std::error::Error;
-use std::fmt; // 0.3.5
+use std::fmt;
+use embedded_hal::digital::v2::OutputPin;
+use thiserror::Error;
+
+// 0.3.5
 use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
 const BIGGEST_POSSIBLE_DURATION: u64 = 150000;
-const WATER_GPIO_OUTPUT_NUM:u16=10;
-pub struct Worker {
+pub struct Worker<T: OutputPin> {
     pump_lock: Mutex<bool>,
-    water_pump_gpio:u8,
+    water_pump_gpio:T,
 
 }
 
-#[derive(Debug, PartialEq)]
-pub enum PumpError {
+#[derive(Debug, PartialEq,Error)]
+pub enum PumpError<GpioError> {
+    #[error("the pump is already on, canceling the operation")]
     AlreadyOn,
+    #[error("the given duration is to big")]
     ImpossibleDuration,
+    #[error("the gpio pin couldent work")]
+    GpioError(#[from] GpioError)
 }
 #[derive(Debug)]
 pub enum WorkerError{
     NotRunningOnRaspberryPi,
     CantOpenPumpGpioPin(Box<dyn Error>)
 }
-impl fmt::Display for PumpError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            PumpError::AlreadyOn => write!(f, "the pump is already on, canceling the operation"),
-            PumpError::ImpossibleDuration => write!(f, "the given duration is to big"),
-        }
-    }
-}
 impl Error for WorkerError {
-    fn source('static &self) -> Option<&(dyn Error + 'static)> {
-        Some(&self)
-    }
 }
 impl fmt::Display for WorkerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -42,28 +38,16 @@ impl fmt::Display for WorkerError {
   }
 }
 
-//impl From<io::Error> for WorkerError {
-//    fn from(err: std::error::error) -> WorkerError {
-//        CantOpenPumpGpioPin(err)
-//    }
-//}
-impl Worker {
-    pub fn new() -> Result<Worker, WorkerError> {
-        // if !cfg!(feature = "raspberry_pi") {
-        //     return Err(WorkerError::NotRunningOnRaspberryPi);
-        // };
-        // todo! change this to work with the new libery
-       // let mut water_pump_gpio = match gpio::sysfs::SysFsGpioOutput::open(WATER_GPIO_OUTPUT_NUM){
-         //   Ok(gpio) =>{gpio},
-        //Err(e)=>{return Err( WorkerError::CantOpenOpenPumpGpioPin(e) )}
-        //};
-        Ok(Worker {
+impl<T: OutputPin> Worker<T> {
+    pub fn new( water_pump_gpio:T) -> Self {
+
+        Worker {
             pump_lock: Mutex::new(false),
-            water_pump_gpio: 15,// todo!! this must be a variable!!!!!!!!!!!
-        })
+            water_pump_gpio: water_pump_gpio,
+        }
     }
 
-    pub async fn pump_water(&self, ms_duration: u64) -> Result<u64, PumpError> {
+    pub async fn pump_water(&mut self, ms_duration: u64) -> Result<u64, PumpError<T::Error>> {
         let _lock = match self.pump_lock.try_lock() {
             Err(_) => return Err(PumpError::AlreadyOn),
             Ok(lock) => lock,
@@ -71,11 +55,10 @@ impl Worker {
         if ms_duration > BIGGEST_POSSIBLE_DURATION {
             return Err(PumpError::ImpossibleDuration);
         }
-        if !cfg!(feature = "raspberry_pi") {
-            
-        };
         log::debug!("before pump");
+        self.water_pump_gpio.set_high()?;
         sleep(Duration::from_millis(ms_duration)).await;
+        self.water_pump_gpio.set_low()?;
         log::debug!("after pump");
         Ok(ms_duration)
     }

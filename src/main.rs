@@ -1,3 +1,4 @@
+use crate::worker::Worker;
 use log::LevelFilter;
 use log4rs::append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRoller;
 use log4rs::append::rolling_file::policy::compound::trigger::size::SizeTrigger;
@@ -5,21 +6,15 @@ use log4rs::append::rolling_file::policy::compound::CompoundPolicy;
 use log4rs::append::rolling_file::RollingFileAppender;
 use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
-use worker::WorkerError;
-use std::error::Error;
-use rppal::gpio::Gpio;
+use rppal::gpio::{Gpio, OutputPin};
 use rppal::system::DeviceInfo;
-use crate::worker::Worker;
+use std::error::Error;
 mod worker;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-// #[cfg(feature = "raspberry_pi")]    
-// {
-//     println!("print only for raspberry pi")
-// }
-  println!("Blinking an LED on a {}.", DeviceInfo::new()?.model());
-    let mut pin = Gpio::new()?.get(10)?.into_output();
+    println!("Blinking an LED on a {} gaga.", DeviceInfo::new()?.model()); // fixme - this will crush
+                                                                           // on windows systems
     match configure_logger() {
         Err(e) => return Err(e),
         _ => {
@@ -27,8 +22,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    let worker = Worker::new();
-    match worker?.pump_water(100).await {
+    let mut worker = initialize_worker()?;
+    match worker.pump_water(1000).await {
         Err(e) => log::error!(target:"roling","{}",format!("the punp return this error - {}",e)
         ),
         Ok(i) => println!("{}", i),
@@ -70,7 +65,9 @@ fn configure_logger() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn initializeWorker()->Result<Worker,WorkerError>{
-            log::info!("the worker is initialized");
-            Ok(Worker::new().unwrap()) }
-
+fn initialize_worker() -> Result<Worker<OutputPin>, Box<dyn Error>> {
+    log::info!("the worker is initializing");
+    let water_pump_pin = 4;
+    let water_pin = Gpio::new()?.get(water_pump_pin)?.into_output();
+    Ok(Worker::new(water_pin))
+}

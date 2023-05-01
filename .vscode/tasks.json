@@ -9,6 +9,15 @@
 			],
 			"group": "build",
 			"label": "rust: cargo clippy"
+		},
+		{
+			"label": "build",
+			// "type": "shell",
+			"command": "wsl.exe",
+			"shell": true,
+			// "args":["cargo"],
+			"args": ["./deploy.sh" ,"ypi" ,"~/garden-pi"],
+			"problemMatcher": []
 		}
 	]
 }
